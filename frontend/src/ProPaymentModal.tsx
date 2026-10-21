@@ -10,9 +10,10 @@ type Props = {
   onClose: () => void;
   onSubmitted?: () => void;
   members?: number;
+    workspaceId?: string;
 };
 
-export default function ProPaymentModal({ open, onClose, onSubmitted, members = 1 }: Props) {
+export default function ProPaymentModal({ open, onClose, onSubmitted, members = 1, workspaceId }: Props) {
   const [txnId, setTxnId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,12 +36,18 @@ export default function ProPaymentModal({ open, onClose, onSubmitted, members = 
       setError("Please enter a valid Transaction ID / UTR (at least 12 letters or numbers).");
       return;
     }
+
+        if (!workspaceId) {
+      setError("No workspace selected. Please select a workspace and try again.");
+      return;
+    }
+
     setError("");
     setLoading(true);
     try {
       await api("/billing/payments", {
         method: "POST",
-        body: JSON.stringify({ plan: "pro", amount, transactionId: id }),
+        body: JSON.stringify({ plan: "pro", amount, transactionId: id, workspaceId }),
       });
       setDone(true);
       onSubmitted?.();

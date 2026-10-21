@@ -18,7 +18,7 @@ import ProPaymentModal from "./ProPaymentModal";
 import Login from "./Login";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
-
+import PaymentRequestsPage from "./PaymentRequestsPage";
 
 import { toList, toProject, toTask, statusToApi, initialsOf } from "./mappers";
 type Page =
@@ -26,7 +26,7 @@ type Page =
   | "Timesheets" | "Reports" | "Settings" | "Leave Requests" | "Files"
   | "Notifications" | "AI Reports" | "Calendar" | "Goals & OKRs"
   | "Budget & Expenses" | "Automations" | "Integrations" | "Audit Log" | "Help Center"
-  | "Milestones" | "Workload" | "Clients" | "Templates" | "Assets" | "Security" | "Billing" | "Ask AI";
+  | "Milestones" | "Workload" | "Clients" | "Templates" | "Assets" | "Security" | "Billing" | "Ask AI" | "Payment requests";
 type Member = { id: string; name: string; role: string; email: string; initials: string; color: string; status: string };
 const memberColors = ["purple", "pink", "blue", "orange", "green"];
 const ymd = (d: Date) =>
@@ -78,7 +78,8 @@ const navGroups: { label: string; items: { label: Page; icon: typeof LayoutDashb
     { label: "Templates", icon: Layers3 },
     { label: "Assets", icon: Image },
     { label: "Security", icon: LockKeyhole },
-    { label: "Billing", icon: CreditCard },
+       { label: "Billing", icon: CreditCard },
+    { label: "Payment requests", icon: ShieldCheck },
   ] },
 ];
 
@@ -109,7 +110,8 @@ const pageDescriptions: Record<Page, string> = {
   Files: "Find project documents, shared assets, and deliverables.",
   Notifications: "Catch up on updates that need your attention.",
   "AI Reports": "Turn project activity into a concise, actionable summary.",
-    "Ask AI": "Ask questions about your tasks, projects, hours and budget.",
+  "Ask AI": "Ask questions about your tasks, projects, hours and budget.",
+  "Payment requests": "Verify UPI payments to activate Pro for a workspace.",
 };
 
 function Avatar({ initials, color = "purple", small = false }: { initials: string; color?: string; small?: boolean }) {
@@ -169,6 +171,8 @@ const loadUnread = async () => {
   });
   const activeWs = workspaces.find((w) => String(w._id) === activeWorkspaceId) ?? workspaces[0];
   const activeWorkspace: string = activeWs?.name ?? "Workspace";
+    const isPro = activeWs?.plan === "pro";
+    console.log("activeWs:", activeWs, "id:", activeWs?._id, "len:", String(activeWs?._id).length);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taskFilter, setTaskFilter] = useState("All tasks");
   const [toast, setToast] = useState("");
@@ -231,6 +235,7 @@ const loadWorkspaces = async () => {
   } catch (err) {
     console.error(err);
   }
+
 };
 
 
@@ -490,6 +495,8 @@ const renderPage = () => {
       return <TemplatesPage currentUser={currentUser} onNotify={notify} onTasksCreated={loadData} />;
     case "Assets":
       return <AssetsPage onNotify={notify} />;
+       case "Payment requests":
+      return <PaymentRequestsPage onChanged={loadWorkspaces} />;
       case "Help Center":
       return <HelpCenterPage currentUser={currentUser} onNotify={notify} />;
     case "Automations":
@@ -538,7 +545,9 @@ const renderPage = () => {
           {navGroups.map((group) => (
             <div className="nav-group" key={group.label}>
               <p className="nav-label">{group.label}</p>
-              {group.items.map(({ label, icon: Icon, badge }) => (
+              {group.items
+  .filter((item) => item.label !== "Payment requests" || currentUser.role === "admin")
+  .map(({ label, icon: Icon, badge }) => (
                 <button
                   key={label}
                   className={`nav-item ${page === label ? "nav-item-active" : ""}`}
@@ -670,14 +679,27 @@ const renderPage = () => {
         </form>
       </Modal>}
 
-<ProPaymentModal open={showPayModal} onClose={() => setShowPayModal(false)} onSubmitted={() => notify("Payment request submitted. Pro will be activated after verification.")} />
-      {showPlanModal && <Modal title="Choose your WorkSphere plan" subtitle="Compare workspace plans. Compare workspace plans. Pro is activated after we verify your UPI payment." onClose={() => setShowPlanModal(false)}>
+
+
+<ProPaymentModal
+        open={showPayModal}
+        workspaceId={activeWs?._id ? String(activeWs._id) : undefined}
+        members={Math.max(1, activeWs?.members?.length ?? 1)}
+        onClose={() => setShowPayModal(false)}
+        onSubmitted={() => notify("Payment request submitted. Pro will be activated after verification.")}
+      />
+      {showPlanModal && <Modal title="Choose your WorkSphere plan" subtitle="Compare workspace plans. Pro is activated after we verify your UPI payment." onClose={() => setShowPlanModal(false)}>
         <div className="plan-options">
           <article className="plan-option">
-            <span className="plan-tag">CURRENT PLAN</span><h3>Free</h3><p className="plan-price">₹0 <small>/ month</small></p><p className="plan-description">For small teams getting started.</p><ul><li><Check size={14} /> Up to 5 members</li><li><Check size={14} /> Basic project and task tracking</li><li><Check size={14} /> 3 active projects</li></ul><button className="button button-secondary" onClick={() => { setShowPlanModal(false); notify("You are already using the Free demo plan."); }}>Current plan</button>
+            <span className="plan-tag">{isPro ? "STARTER" : "CURRENT PLAN"}</span><h3>Free</h3><p className="plan-price">₹0 <small>/ month</small></p><p className="plan-description">For small teams getting started.</p><ul><li><Check size={14} /> Up to 5 members</li><li><Check size={14} /> Basic project and task tracking</li><li><Check size={14} /> 3 active projects</li></ul><button className="button button-secondary" onClick={() => { setShowPlanModal(false); notify(isPro ? "Your workspace is on the Pro plan." : "You are already using the Free plan."); }}>{isPro ? "Included in Pro" : "Current plan"}</button>
           </article>
           <article className="plan-option plan-option-featured">
-            <span className="plan-tag plan-tag-featured">RECOMMENDED</span><h3>Pro</h3><p className="plan-price">₹799 <small>/ member / month</small></p><p className="plan-description">For growing teams that need more control.</p><ul><li><Check size={14} /> Unlimited projects</li><li><Check size={14} /> Advanced reports and insights</li><li><Check size={14} /> Automations and priority support</li></ul><button className="button button-primary" onClick={() => { setShowPlanModal(false); setShowPayModal(true); }}>Choose Pro <ArrowRight size={15} /></button>
+            <span className="plan-tag plan-tag-featured">{isPro ? "CURRENT PLAN" : "RECOMMENDED"}</span><h3>Pro</h3><p className="plan-price">₹799 <small>/ member / month</small></p><p className="plan-description">For growing teams that need more control.</p><ul><li><Check size={14} /> Unlimited projects</li><li><Check size={14} /> Advanced reports and insights</li><li><Check size={14} /> Automations and priority support</li></ul>
+            {isPro ? (
+              <button className="button button-secondary" disabled>Current plan</button>
+            ) : (
+              <button className="button button-primary" onClick={() => { setShowPlanModal(false); setShowPayModal(true); }}>Choose Pro <ArrowRight size={15} /></button>
+            )}
           </article>
         </div>
         <p className="modal-footnote"><ShieldCheck size={14} /> Pay by UPI, then submit your transaction ID. Pro is activated after manual verification.</p>

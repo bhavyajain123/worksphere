@@ -69,8 +69,9 @@ app.use("/api/articles", articleRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/billing", billingRoutes);
 
-
+ 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+   console.error("Unhandled error:", err);
   if (res.headersSent) {
     return next(err);
   }
