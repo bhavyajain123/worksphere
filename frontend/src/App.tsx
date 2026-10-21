@@ -14,6 +14,7 @@ import {
 
 import type { Project, Task, TaskStatus } from "./types";
 import { api, API_BASE } from "./api";
+import ProPaymentModal from "./ProPaymentModal";
 import Login from "./Login";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
@@ -159,6 +160,7 @@ const loadUnread = async () => {
   const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] = useState(false);
   const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [expandedHelp, setExpandedHelp] = useState<string | null>("Getting started");
   const [activeWorkspaceId, setActiveWorkspaceId] = useState(() => {
@@ -668,17 +670,17 @@ const renderPage = () => {
         </form>
       </Modal>}
 
-
-      {showPlanModal && <Modal title="Choose your WorkSphere plan" subtitle="Compare workspace plans. Plan selection is a frontend demo and will not charge you." onClose={() => setShowPlanModal(false)}>
+<ProPaymentModal open={showPayModal} onClose={() => setShowPayModal(false)} onSubmitted={() => notify("Payment request submitted. Pro will be activated after verification.")} />
+      {showPlanModal && <Modal title="Choose your WorkSphere plan" subtitle="Compare workspace plans. Compare workspace plans. Pro is activated after we verify your UPI payment." onClose={() => setShowPlanModal(false)}>
         <div className="plan-options">
           <article className="plan-option">
             <span className="plan-tag">CURRENT PLAN</span><h3>Free</h3><p className="plan-price">₹0 <small>/ month</small></p><p className="plan-description">For small teams getting started.</p><ul><li><Check size={14} /> Up to 5 members</li><li><Check size={14} /> Basic project and task tracking</li><li><Check size={14} /> 3 active projects</li></ul><button className="button button-secondary" onClick={() => { setShowPlanModal(false); notify("You are already using the Free demo plan."); }}>Current plan</button>
           </article>
           <article className="plan-option plan-option-featured">
-            <span className="plan-tag plan-tag-featured">RECOMMENDED</span><h3>Pro</h3><p className="plan-price">₹799 <small>/ member / month</small></p><p className="plan-description">For growing teams that need more control.</p><ul><li><Check size={14} /> Unlimited projects</li><li><Check size={14} /> Advanced reports and insights</li><li><Check size={14} /> Automations and priority support</li></ul><button className="button button-primary" onClick={() => { setShowPlanModal(false); notify("Pro plan selected in demo. Connect billing backend to activate it."); }}>Choose Pro <ArrowRight size={15} /></button>
+            <span className="plan-tag plan-tag-featured">RECOMMENDED</span><h3>Pro</h3><p className="plan-price">₹799 <small>/ member / month</small></p><p className="plan-description">For growing teams that need more control.</p><ul><li><Check size={14} /> Unlimited projects</li><li><Check size={14} /> Advanced reports and insights</li><li><Check size={14} /> Automations and priority support</li></ul><button className="button button-primary" onClick={() => { setShowPlanModal(false); setShowPayModal(true); }}>Choose Pro <ArrowRight size={15} /></button>
           </article>
         </div>
-        <p className="modal-footnote"><ShieldCheck size={14} /> No payment is collected in this frontend preview.</p>
+        <p className="modal-footnote"><ShieldCheck size={14} /> Pay by UPI, then submit your transaction ID. Pro is activated after manual verification.</p>
       </Modal>}
 
       {showHelpModal && <Modal title="Help & support" subtitle="Find an answer or contact the WorkSphere support team." onClose={() => setShowHelpModal(false)}>

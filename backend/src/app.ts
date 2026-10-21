@@ -25,6 +25,7 @@ import clientRoutes from "./routes/client.routes";
 import templateRoutes from "./routes/template.routes";
 import articleRoutes from "./routes/article.routes";
 import aiRoutes from "./routes/ai.routes";
+import billingRoutes from "./routes/billing.routes";
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use("/api/clients", clientRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/articles", articleRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/billing", billingRoutes);
 
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
