@@ -7,18 +7,23 @@ import Workspace from "../models/Workspace";
 const objectId = z.string().regex(/^[a-f\d]{24}$/i);
 
 const createSchema = z.object({
-  plan: z.literal("pro"),
-  amount: z.number().positive(),
+  plan: z.string().trim().toLowerCase().pipe(z.literal("pro")),
+  amount: z.coerce.number().positive(),
   transactionId: z.string().trim().regex(/^[A-Za-z0-9]{12,30}$/),
   workspaceId: objectId,
 });
-
 export async function createPaymentRequest(req: AuthRequest, res: Response): Promise<void> {
   const parsed = createSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ success: false, message: "Invalid transaction ID, amount or workspace" });
-    return;
-  }
+if (!parsed.success) {
+  const errors = parsed.error.flatten().fieldErrors;
+  console.error("Payment validation failed:", errors, req.body);
+  res.status(400).json({
+    success: false,
+    message: `Invalid fields: ${Object.keys(errors).join(", ")}`,
+    errors,
+  });
+  return;
+}
 
   try {
     const workspace = await Workspace.findById(parsed.data.workspaceId);
