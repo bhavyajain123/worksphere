@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import { api } from "./api";
 
-const UPI_ID = "9310331240@pthdfc"; 
+const UPI_ID = "9310331240@pthdfc";
 const PRO_PRICE = 799;
 
 type Props = {
@@ -32,7 +32,7 @@ export default function ProPaymentModal({ open, onClose, onSubmitted, members = 
   const submit = async () => {
     const id = txnId.trim();
     if (!/^[A-Za-z0-9]{12,30}$/.test(id)) {
-      setError("Sahi Transaction ID / UTR daalo (kam se kam 12 letters ya numbers).");
+      setError("Please enter a valid Transaction ID / UTR (at least 12 letters or numbers).");
       return;
     }
     setError("");
@@ -45,7 +45,7 @@ export default function ProPaymentModal({ open, onClose, onSubmitted, members = 
       setDone(true);
       onSubmitted?.();
     } catch (e: any) {
-      setError(e?.message || "Submit nahi ho paya, dobara try karo.");
+      setError(e?.message || "Could not submit your request. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -64,14 +64,14 @@ export default function ProPaymentModal({ open, onClose, onSubmitted, members = 
   return (
     <div style={overlay} onClick={close}>
       <div style={card} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ margin: 0, fontSize: 20 }}>Pro plan ke liye payment karo</h3>
+        <h3 style={{ margin: 0, fontSize: 20 }}>Complete your Pro payment</h3>
 
         {done ? (
           <>
             <p style={{ marginTop: 16, lineHeight: 1.5 }}>
-              Aapki request submit ho gayi. Payment verify hone ke baad Pro activate hoga.
+              Your request has been submitted. Pro will be activated once your payment is verified.
             </p>
-            <button onClick={close} style={btn}>Theek hai</button>
+            <button onClick={close} style={btn}>Done</button>
           </>
         ) : (
           <>
@@ -84,7 +84,7 @@ export default function ProPaymentModal({ open, onClose, onSubmitted, members = 
               <div style={{ marginTop: 8, fontSize: 14 }}>UPI ID: <b>{UPI_ID}</b></div>
             </div>
             <p style={{ fontSize: 13, color: "#5b6078", margin: "12px 0 6px" }}>
-              QR scan karke pay karo, phir apne UPI app se Transaction ID / UTR copy karke yahan daalo.
+              Scan the QR code and complete the payment, then copy the Transaction ID / UTR from your UPI app and enter it below.
             </p>
             <input
               value={txnId}
@@ -97,7 +97,7 @@ export default function ProPaymentModal({ open, onClose, onSubmitted, members = 
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
               <button onClick={close} style={{ ...btn, background: "#eef0fa", color: "#1f2340" }}>Cancel</button>
               <button onClick={submit} disabled={loading} style={btn}>
-                {loading ? "Submit ho raha hai..." : "Submit"}
+                {loading ? "Submitting..." : "Submit"}
               </button>
             </div>
           </>
