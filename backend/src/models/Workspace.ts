@@ -5,6 +5,7 @@ export interface IWorkspace extends Document {
   description?: string;
   owner: mongoose.Types.ObjectId;
   members: mongoose.Types.ObjectId[];
+  plan: "free" | "pro";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +37,11 @@ const workspaceSchema = new Schema<IWorkspace>(
         ref: "User",
       },
     ],
+    plan: {
+      type: String,
+      enum: ["free", "pro"],
+      default: "free",
+    },
   },
   {
     timestamps: true,

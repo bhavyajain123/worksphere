@@ -3,6 +3,7 @@ import { Schema, model } from "mongoose";
 const paymentRequestSchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    workspace: { type: Schema.Types.ObjectId, ref: "Workspace" },
     plan: { type: String, enum: ["pro"], default: "pro" },
     amount: { type: Number, required: true, min: 1 },
     transactionId: { type: String, required: true, unique: true, trim: true },
