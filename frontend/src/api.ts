@@ -1,6 +1,7 @@
 import { auth, authReady } from "./firebase";
 
-const BASE = "/api";
+export const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const BASE = API_BASE;
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   await authReady;

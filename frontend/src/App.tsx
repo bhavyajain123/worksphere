@@ -13,7 +13,7 @@ import {
 } from "recharts";
 
 import type { Project, Task, TaskStatus } from "./types";
-import { api } from "./api";
+import { api, API_BASE } from "./api";
 import Login from "./Login";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
@@ -2094,7 +2094,7 @@ function FilesPageLive({ projects, onNotify }: { projects: Project[]; onNotify: 
       body.append("file", file);
       body.append("projectId", projectId);
       body.append("project", projectId);
-      const res = await fetch("/api/files/upload", { method: "POST", headers: authHeader(), body });
+   const res = await fetch(`${API_BASE}/files/upload`, { method: "POST", headers: authHeader(), body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Upload failed");
       await load(projectId);
@@ -2109,7 +2109,7 @@ function FilesPageLive({ projects, onNotify }: { projects: Project[]; onNotify: 
 
   const download = async (f: any) => {
     try {
-      const res = await fetch(`/api/files/${f._id}/download`, { headers: authHeader() });
+     const res = await fetch(`${API_BASE}/files/${f._id}/download`, { headers: authHeader() });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -3076,7 +3076,7 @@ function AssetsPage({ onNotify }: { onNotify: (text: string) => void }) {
   const download = async (f: any) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/files/${f._id}/download`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/files/${f._id}/download`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

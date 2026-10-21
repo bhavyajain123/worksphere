@@ -3,10 +3,16 @@ import { getAuth } from "firebase-admin/auth";
 import * as fs from "fs";
 import * as path from "path";
 
-if (!getApps().length) {
+function loadServiceAccount() {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    return JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  }
   const keyPath = path.resolve(process.cwd(), "serviceAccountKey.json");
-  const serviceAccount = JSON.parse(fs.readFileSync(keyPath, "utf8"));
-  initializeApp({ credential: cert(serviceAccount) });
+  return JSON.parse(fs.readFileSync(keyPath, "utf8"));
+}
+
+if (!getApps().length) {
+  initializeApp({ credential: cert(loadServiceAccount()) });
 }
 
 export const adminAuth = getAuth();

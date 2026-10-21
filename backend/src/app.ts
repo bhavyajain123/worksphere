@@ -29,7 +29,19 @@ import aiRoutes from "./routes/ai.routes";
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+  .split(",")
+  .map((o) => o.trim());
+
+app.use(
+  cors({
+    origin: (origin, cb) =>
+      !origin || allowedOrigins.includes(origin)
+        ? cb(null, true)
+        : cb(new Error("Not allowed by CORS")),
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "1mb" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -54,7 +66,6 @@ app.use("/api/clients", clientRoutes);
 app.use("/api/templates", templateRoutes);
 app.use("/api/articles", articleRoutes);
 app.use("/api/ai", aiRoutes);
-
 
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
