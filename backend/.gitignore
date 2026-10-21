@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.*
+coverage/
+serviceAccountKey.json
+*.serviceAccountKey.json
+*-firebase-adminsdk-*.json
+uploads/
+src_backup/
+*.exe
+*-test.txt
+large-test.txt
+downloaded-*
+*.csv
