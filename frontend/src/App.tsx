@@ -6,7 +6,7 @@ import {
   LogOut, Menu, MessageSquare, MoreHorizontal, Plus, Search, Send,
   Settings, ShieldCheck, SlidersHorizontal, Sparkles, Users, X, Zap,
   CheckCircle2, Circle, AlertCircle, Paperclip, Download, Filter, Eye,
-  UserRound, CalendarCheck, BriefcaseBusiness, ChartNoAxesCombined, Flag, UsersRound, Building2, Layers3, Image, LockKeyhole, CreditCard,
+  UserRound, CalendarCheck, BriefcaseBusiness, ChartNoAxesCombined, Flag, UsersRound, Building2, Layers3, Image, LockKeyhole, CreditCard,Moon, Sun,
 } from "lucide-react";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis,
@@ -150,11 +150,14 @@ const loadUnread = async () => {
   try {
     const res = await api<any>("/notifications/unread-count");
     setUnread(Number(res.count ?? res.unreadCount ?? res.unread ?? res.data?.count ?? 0));
-  } catch { /* ignore */ }
+  } catch {  }
 };
 
  
   const [search, setSearch] = useState("");
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+const [commandQuery, setCommandQuery] = useState("");
+const [commandIndex, setCommandIndex] = useState(0);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -176,6 +179,15 @@ const loadUnread = async () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taskFilter, setTaskFilter] = useState("All tasks");
   const [toast, setToast] = useState("");
+
+  const [theme, setTheme] = useState<"light" | "dark">(
+  () => (localStorage.getItem("theme") as "light" | "dark") || "light"
+);
+
+useEffect(() => {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+}, [theme]);
  const [profileName, setProfileName] = useState(currentUser.name || "Ayush Sharma");
 
 
@@ -246,6 +258,31 @@ useEffect(() => {
   loadUnread();
   const timer = window.setInterval(loadUnread, 30000);
   return () => window.clearInterval(timer);
+}, []);
+
+useEffect(() => {
+  const handleShortcut = (event: KeyboardEvent) => {
+    if (
+      (event.ctrlKey || event.metaKey) &&
+      event.key.toLowerCase() === "k"
+    ) {
+      event.preventDefault();
+
+      setShowCommandPalette((open) => !open);
+      setCommandQuery("");
+      setCommandIndex(0);
+    }
+
+    if (event.key === "Escape") {
+      setShowCommandPalette(false);
+    }
+  };
+
+  window.addEventListener("keydown", handleShortcut);
+
+  return () => {
+    window.removeEventListener("keydown", handleShortcut);
+  };
 }, []);
 
 const members = useMemo(() => {
@@ -510,6 +547,100 @@ const renderPage = () => {
 };
   return (
     <div className="app-shell">
+
+      
+{showCommandPalette && (
+  <div
+    className="command-overlay"
+    onMouseDown={(event) => {
+      if (event.target === event.currentTarget) {
+        setShowCommandPalette(false);
+      }
+    }}
+  >
+    <section className="command-panel" role="dialog" aria-modal="true">
+      <div className="command-search-row">
+        <Sparkles size={21} />
+        <input
+          autoFocus
+          value={commandQuery}
+          onChange={(event) => {
+            setCommandQuery(event.target.value);
+            setCommandIndex(0);
+          }}
+          placeholder="Search pages or actions..."
+          aria-label="Search commands"
+        />
+        <button
+          type="button"
+          onClick={() => setShowCommandPalette(false)}
+          aria-label="Close command palette"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <p className="command-label">NAVIGATE</p>
+
+      {([
+        { label: "Overview", icon: LayoutDashboard, run: () => setPage("Overview") },
+        { label: "Projects", icon: FolderKanban, run: () => setPage("Projects") },
+        { label: "My Tasks", icon: ListTodo, run: () => setPage("My Tasks") },
+        { label: "Team", icon: Users, run: () => setPage("Team") },
+        { label: "Messages", icon: MessageSquare, run: () => setPage("Messages") },
+        { label: "Calendar", icon: CalendarDays, run: () => setPage("Calendar") },
+        { label: "Reports", icon: ChartNoAxesCombined, run: () => setPage("Reports") },
+        { label: "Ask WorkSphere", icon: Sparkles, run: () => setPage("Ask AI") },
+      ] as const)
+        .filter((item) =>
+          item.label.toLowerCase().includes(commandQuery.toLowerCase())
+        )
+        .map((item, index) => {
+          const Icon = item.icon;
+
+          return (
+            <button
+              type="button"
+              key={item.label}
+              className={`command-item ${
+                commandIndex === index ? "command-item-active" : ""
+              }`}
+              onMouseEnter={() => setCommandIndex(index)}
+              onClick={() => {
+                item.run();
+                setShowCommandPalette(false);
+                setCommandQuery("");
+              }}
+            >
+              <span className="command-item-icon">
+                <Icon size={18} />
+              </span>
+              <span>{item.label}</span>
+              <ArrowRight size={16} />
+            </button>
+          );
+        })}
+
+      <p className="command-empty">
+        {commandQuery &&
+          !([
+            "Overview", "Projects", "My Tasks", "Team",
+            "Messages", "Calendar", "Reports", "Ask WorkSphere",
+          ].some((label) =>
+            label.toLowerCase().includes(commandQuery.toLowerCase())
+          ))
+          ? "No matching commands found."
+          : "Select an action to continue."}
+      </p>
+
+      <footer className="command-footer">
+        <span><kbd>ESC</kbd> Close</span>
+        <span>WORKSPHERE COMMAND CENTER</span>
+      </footer>
+    </section>
+  </div>
+)}
+
       {sidebarOpen && <button className="mobile-scrim" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
       <aside className={`sidebar ${sidebarOpen ? "sidebar-open" : ""}`}>
         <button className="brand" onClick={() => { setPage("Overview"); setSidebarOpen(false); }}>
@@ -635,6 +766,15 @@ const renderPage = () => {
               <kbd>⌘ K</kbd>
             </label>
             <div className="notification-wrap">
+
+              <button
+  className="icon-button"
+  aria-label="Toggle theme"
+  title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+  onClick={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+>
+  {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+</button>
               <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setShowNotifications(!showNotifications)}><Bell size={20} />{unread > 0 && <span />}</button>
               {showNotifications && <div className="notification-popover">
                 <div className="popover-heading"><strong>Notifications</strong><button onClick={() => setShowNotifications(false)}><X size={16} /></button></div>
@@ -723,6 +863,18 @@ const renderPage = () => {
 }
 
 function Overview({ projects, tasks, setPage, onCreateTask, userName }: { projects: Project[]; tasks: Task[]; setPage: (page: Page) => void; onCreateTask: () => void; userName: string }) {
+  const hour = new Date().getHours();
+const greeting =
+  hour >= 5 && hour < 12 ? "Good morning" :
+  hour >= 12 && hour < 17 ? "Good afternoon" :
+  hour >= 17 && hour < 21 ? "Good evening" :
+  "Good night";
+  const greetingEmoji = hour >= 5 && hour < 12 ? "☀️" : hour >= 12 && hour < 17 ? "🌤️" : hour >= 17 && hour < 21 ? "🌆" : "🌙";
+const greetingSub =
+  hour >= 5 && hour < 12 ? "Start your day strong. Here’s what’s on your plate." :
+  hour >= 12 && hour < 17 ? "Halfway there. Here’s how your workspace is doing." :
+  hour >= 17 && hour < 21 ? "Wrapping up? Here’s what got done today." :
+  "Working late? Here’s a quick look at your workspace.";
   const completed = tasks.filter((task) => task.status === "Done").length;
   const inProgress = tasks.filter((task) => task.status === "In progress").length;
 
@@ -736,7 +888,7 @@ function Overview({ projects, tasks, setPage, onCreateTask, userName }: { projec
     .slice(0, 4);
   const toneOf = (t: Task) => (t.due === "Today" || isOverdue(t) ? "urgent" : t.due === "Tomorrow" ? "soon" : "normal");
   return <>
-    <SectionTitle title={`Good morning, ${(userName || "there").split(" ")[0]} 👋`} subtitle="Here’s what’s happening across your workspace today." action={<><button className="button button-secondary" onClick={() => setPage("Reports")}><CalendarDays size={16} /> This week <ChevronDown size={14} /></button><button className="button button-primary" onClick={onCreateTask}><Plus size={17} /> Create task</button></>} />
+   <SectionTitle title={`${greeting}, ${(userName || "there").split(" ")[0]} ${greetingEmoji}`} subtitle={greetingSub} action={<><button className="button button-secondary" onClick={() => setPage("Reports")}><CalendarDays size={16} /> This week <ChevronDown size={14} /></button><button className="button button-primary" onClick={onCreateTask}><Plus size={17} /> Create task</button></>} />
     <div className="welcome-banner">
       <div className="welcome-copy"><span className="welcome-kicker"><Sparkles size={14} /> YOUR WORKSPACE AT A GLANCE</span><h2>Big things happen when teams work in sync.</h2><p>You’ve made great progress this week. Here’s your team’s momentum at a glance.</p><button className="banner-button" onClick={() => setPage("Reports")}>View team report <ArrowRight size={15} /></button></div>
       <div className="banner-art"><div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" /><div className="art-card"><ChartNoAxesCombined size={28} /><strong>+18.6%</strong><small>Team productivity</small><div className="art-bars"><i /><i /><i /><i /><i /><i /><i /></div></div><div className="floating-check"><Check size={18} /></div><div className="floating-star"><Sparkles size={18} /></div></div>
@@ -771,8 +923,35 @@ function Overview({ projects, tasks, setPage, onCreateTask, userName }: { projec
   </>;
 }
 
+function useCountUp(target: number) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    let start: number | null = null;
+    const step = (t: number) => {
+      if (start === null) start = t;
+      const p = Math.min((t - start) / 700, 1);
+      setN(Math.round(target * p));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return n;
+}
+
+function AnimatedValue({ value }: { value: string }) {
+  const match = value.match(/^(\D*)([\d,]+(?:\.\d+)?)(.*)$/);
+  const num = match ? parseFloat(match[2].replace(/,/g, "")) : 0;
+  const shown = useCountUp(Number.isFinite(num) ? num : 0);
+  if (!match) return <>{value}</>;
+  const pad = match[2].length > 1 && match[2].startsWith("0") && !match[2].includes(".");
+  const text = pad ? String(shown).padStart(match[2].length, "0") : shown.toLocaleString("en-IN");
+  return <>{match[1]}{text}{match[3]}</>;
+}
+
 function StatCard({ label, value, change, icon, tone }: { label: string; value: string; change: string; icon: ReactNode; tone: string; trend?: "up" | "down" }) {
-  return <div className="stat-card"><div className="stat-top"><span className={`stat-icon stat-${tone}`}>{icon}</span><button className="icon-button subtle-icon" aria-label={`${label} details`}><MoreHorizontal size={18} /></button></div><p>{label}</p><div className="stat-value-row"><strong>{value}</strong></div><small>{change}</small></div>;
+  return <div className="stat-card"><div className="stat-top"><span className={`stat-icon stat-${tone}`}>{icon}</span><button className="icon-button subtle-icon" aria-label={`${label} details`}><MoreHorizontal size={18} /></button></div><p>{label}</p><div className="stat-value-row"><strong><AnimatedValue value={value} /></strong></div><small>{change}</small></div>;
 }
 
 function TaskTable({ tasks, onStatus }: { tasks: Task[]; onStatus: () => void }) {
@@ -782,6 +961,9 @@ function TaskTable({ tasks, onStatus }: { tasks: Task[]; onStatus: () => void })
 function ActivityFeed() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+const [commandQuery, setCommandQuery] = useState("");
+const [commandIndex, setCommandIndex] = useState(0);
 
   useEffect(() => {
     api<any>("/activity-logs")
@@ -828,7 +1010,17 @@ function ProjectsPage({ projects, onCreate, onOpenTasks, onEdit }: { projects: P
   const [filter, setFilter] = useState("All");
   const [period, setPeriod] = useState("This week");
   const [editing, setEditing] = useState<Project | null>(null);
-  const visible = projects.filter((project) => filter === "All" || project.status === filter);
+  const [query, setQuery] = useState("");
+  const visible = projects.filter((project) =>
+    (filter === "All" || project.status === filter) &&
+    `${project.name} ${project.description}`.toLowerCase().includes(query.toLowerCase())
+  );
+  const completedCount = projects.filter((project) => project.status === "Completed").length;
+  const atRiskCount = projects.filter(
+  (project) => project.status === "At risk"
+).length;
+  const totalTasks = projects.reduce((sum, project) => sum + (project.tasks || 0), 0);
+  const averageProgress = projects.length ? Math.round(projects.reduce((sum, project) => sum + (project.progress || 0), 0) / projects.length) : 0;
 
   const submitEdit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -844,8 +1036,19 @@ function ProjectsPage({ projects, onCreate, onOpenTasks, onEdit }: { projects: P
 
   return <>
     <SectionTitle title="Projects" subtitle="Track initiatives, milestones, and team progress." action={<><label className="period-select-wrap"><CalendarDays size={16} /><select aria-label="Project time period" className="period-select" value={period} onChange={(event) => setPeriod(event.target.value)}><option>This week</option><option>Last week</option><option>This month</option><option>This quarter</option><option>All time</option></select><ChevronDown size={14} /></label><button className="button button-primary" onClick={onCreate}><Plus size={17} /> Create project</button></>} />
-    <div className="toolbar"><div className="filter-tabs">{["All", "On track", "At risk", "Completed"].map((item) => <button key={item} className={filter === item ? "tab-active" : ""} onClick={() => setFilter(item)}>{item}{item === "All" && <span>{projects.length}</span>}</button>)}</div><div className="toolbar-right"><button className="button button-secondary button-compact" onClick={() => setView(view === "Grid" ? "List" : "Grid")}><SlidersHorizontal size={15} /> {view} view</button></div></div>
-    <div className={view === "Grid" ? "project-grid" : "project-list"}>{visible.map((project) => <article className="project-card panel" key={project.id}><div className="project-card-top"><div className={`project-symbol symbol-${project.color}`}><FolderKanban size={20} /></div><button className="icon-button" aria-label="Edit project" title="Edit project" onClick={() => setEditing(project)}><MoreHorizontal size={19} /></button></div><div className="project-card-title"><h3>{project.name}</h3><StatusPill>{project.status}</StatusPill></div><p>{project.description}</p><div className="project-card-meta"><span><ListTodo size={15} /> {project.tasks} tasks</span><span><Users size={15} /> {project.team.length} members</span></div><div className="project-card-progress"><div><span>Progress</span><strong>{project.progress}%</strong></div><div className="progress-track"><i className={`progress-${project.color}`} style={{ width: `${project.progress}%` }} /></div></div><div className="project-card-footer"><div className="avatar-stack">{project.team.map((person, index) => <Avatar key={person + index} initials={person} color={["purple", "pink", "blue", "orange"][index % 4]} small />)}</div><button className="text-button" onClick={onOpenTasks}>View tasks <ArrowRight size={14} /></button></div></article>)}</div>
+    <section className="project-command-hero">
+      <div className="project-command-copy"><span className="project-command-kicker"><Sparkles size={13} /> YOUR DELIVERY HUB</span><h2>Make progress <em>visible.</em></h2><p>Every initiative, milestone and teammate — all moving in one direction.</p><div className="project-hero-actions"><button className="project-hero-cta" onClick={onCreate}><Plus size={15} /> New initiative</button><button className="project-hero-link" onClick={onOpenTasks}>Open task board <ArrowUpRight size={15} /></button></div></div>
+      <div className="project-hero-orbit" aria-hidden="true"><div className="project-orbit-ring ring-a"/><div className="project-orbit-ring ring-b"/><div className="project-orbit-core"><Layers3 size={25}/><strong>{projects.length.toString().padStart(2,"0")}</strong><small>initiatives</small></div><span className="orbit-chip orbit-chip-one"><CheckCircle2 size={13}/> Delivery</span><span className="orbit-chip orbit-chip-two"><Zap size={13}/> Momentum</span></div>
+      <div className="project-hero-glow" aria-hidden="true" />
+    </section>
+    <section className="project-insight-strip" aria-label="Project insights">
+      <article><span className="insight-icon insight-violet"><FolderKanban size={17}/></span><div><small>Active initiatives</small><strong>{projects.length - completedCount}</strong><span>Across this workspace</span></div></article>
+      <article><span className="insight-icon insight-mint"><CheckCircle2 size={17}/></span><div><small>Completed</small><strong>{completedCount}</strong><span>Shipped projects</span></div></article>
+      <article><span className="insight-icon insight-amber"><Activity size={17}/></span><div><small>Need attention</small><strong>{atRiskCount}</strong><span>At risk or on hold</span></div></article>
+      <article><span className="insight-icon insight-blue"><ListTodo size={17}/></span><div><small>Tasks in projects</small><strong>{totalTasks}</strong><span>{averageProgress}% avg. progress</span></div><div className="insight-mini-ring" style={{"--ring-progress": `${averageProgress * 3.6}deg`} as React.CSSProperties}><span>{averageProgress}%</span></div></article>
+    </section>
+    <div className="project-toolbar-enhanced"><div><span className="toolbar-eyebrow">YOUR PORTFOLIO</span><h2>All initiatives <span>{visible.length}</span></h2></div><div className="project-toolbar-controls"><label className="project-search"><Search size={16}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a project..." aria-label="Search projects"/><kbd>/</kbd></label><div className="filter-tabs">{["All", "On track", "At risk", "Completed"].map((item) => <button key={item} className={filter === item ? "tab-active" : ""} onClick={() => setFilter(item)}>{item}{item === "All" && <span>{projects.length}</span>}</button>)}</div><button className="button button-secondary button-compact" onClick={() => setView(view === "Grid" ? "List" : "Grid")}><SlidersHorizontal size={15} /> {view} view</button></div></div>
+    <div className={view === "Grid" ? "project-grid" : "project-list"}>{visible.map((project) => <article className={`project-card project-card-${project.color} panel`} key={project.id}><div className="project-card-cover"><span className="project-cover-grid"/><span className="project-cover-label"><Sparkles size={12}/> WORKSPACE PROJECT</span><span className="project-cover-mark"><FolderKanban size={24}/></span><span className="project-cover-orbit"/></div><div className="project-card-top"><div className={`project-symbol symbol-${project.color}`}><FolderKanban size={20} /></div><button className="icon-button" aria-label="Edit project" title="Edit project" onClick={() => setEditing(project)}><MoreHorizontal size={19} /></button></div><div className="project-card-title"><h3>{project.name}</h3><StatusPill>{project.status}</StatusPill></div><p>{project.description}</p><div className="project-card-meta"><span><ListTodo size={15} /> {project.tasks} tasks</span><span><Users size={15} /> {project.team.length} members</span></div><div className="project-card-progress"><div><span>Delivery progress</span><strong>{project.progress}%</strong></div><div className="progress-track project-progress-track"><i className={`progress-${project.color}`} style={{ width: `${project.progress}%` }} /></div><div className="project-progress-caption"><span>{project.progress >= 100 ? "Ready to celebrate" : project.progress >= 60 ? "Almost there" : project.progress > 0 ? "Building momentum" : "Ready to get moving"}</span><span>{project.tasks} work items</span></div></div><div className="project-card-footer"><div className="avatar-stack">{project.team.map((person, index) => <Avatar key={person + index} initials={person} color={["purple", "pink", "blue", "orange"][index % 4]} small />)}</div><button className="text-button" onClick={onOpenTasks}>View tasks <ArrowRight size={14} /></button></div></article>)}</div>
     {visible.length === 0 && <EmptyState icon={<FolderKanban />} title="No projects in this view" text="Try another status filter or create a new project." />}
     {editing && <Modal title="Edit project" subtitle="Update the project details." onClose={() => setEditing(null)}>
       <form className="modal-form" onSubmit={submitEdit}>
@@ -863,7 +1066,12 @@ function TasksPage({ tasks, filter, setFilter, onCreate, onStatus, onEdit, onDel
   const [layout, setLayout] = useState("Board");
   const [menuId, setMenuId] = useState<string | number | null>(null);
   const [editing, setEditing] = useState<Task | null>(null);
-
+  const [taskQuery, setTaskQuery] = useState("");
+  const [draggingId, setDraggingId] = useState<string | number | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
+  const visibleTasks = tasks.filter((task) => `${task.title} ${task.project} ${task.assignee}`.toLowerCase().includes(taskQuery.toLowerCase()));
+  const doneCount = tasks.filter((task) => task.status === "Done").length;
+  const overdueCount = tasks.filter((task) => task.status !== "Done" && task.dueDate && new Date(task.dueDate) < new Date(new Date().setHours(0,0,0,0))).length;
   const submitEdit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editing) return;
@@ -879,14 +1087,15 @@ function TasksPage({ tasks, filter, setFilter, onCreate, onStatus, onEdit, onDel
 
   return <>
     <SectionTitle title="My tasks" subtitle="Stay focused on your priorities and upcoming deadlines." action={<button className="button button-primary" onClick={onCreate}><Plus size={17} /> Create task</button>} />
-    <div className="toolbar"><div className="filter-tabs">{["All tasks", ...columns].map((item) => <button key={item} className={filter === item ? "tab-active" : ""} onClick={() => setFilter(item)}>{item}</button>)}</div><button className="button button-secondary button-compact" onClick={() => setLayout(layout === "Board" ? "List" : "Board")}><SlidersHorizontal size={15} /> {layout} view</button></div>
-    {layout === "Board" ? <div className="kanban-board">{columns.map((column) => { const columnTasks = tasks.filter((task) => task.status === column); return <section className="kanban-column" key={column}><div className="kanban-heading"><span className={`column-dot dot-${column.toLowerCase().replace(" ", "-")}`} /><strong>{column}</strong><span className="column-count">{columnTasks.length}</span><button className="icon-button" onClick={onCreate} aria-label={`Add task to ${column}`}><Plus size={16} /></button></div>{columnTasks.map((task) => <article className="kanban-card" key={task.id} style={{ position: "relative" }}><div className="kanban-card-top"><span className={`priority priority-${task.priority.toLowerCase()}`}><i />{task.priority}</span><button className="icon-button" aria-label="Task options" onClick={() => setMenuId(menuId === task.id ? null : task.id)}><MoreHorizontal size={17} /></button></div>
+    <section className="task-command-strip"><div className="task-command-intro"><span className="task-command-orb"><Zap size={18}/></span><div><small>YOUR FOCUS, RIGHT NOW</small><strong>{overdueCount ? `${overdueCount} task${overdueCount === 1 ? "" : "s"} need attention` : "A little progress adds up."}</strong><p>{doneCount} of {tasks.length} tasks completed in this workspace</p></div></div><div className="task-command-progress"><div><span>Completion</span><strong>{tasks.length ? Math.round(doneCount / tasks.length * 100) : 0}%</strong></div><div className="progress-track"><i style={{width:`${tasks.length ? doneCount / tasks.length * 100 : 0}%`}}/></div></div><div className="task-streak"><Sparkles size={15}/><span><strong>{doneCount ? "Momentum building" : "Your next win starts here"}</strong><small>{overdueCount ? "Clear an overdue task to get back on track" : "Pick one task and move it forward"}</small></span></div></section>
+    <div className="task-toolbar-enhanced"><div><span className="toolbar-eyebrow">WORKFLOW STUDIO</span><h2>Move work forward <span>{visibleTasks.length}</span></h2></div><div className="task-toolbar-controls"><label className="project-search"><Search size={16}/><input value={taskQuery} onChange={(event) => setTaskQuery(event.target.value)} placeholder="Search tasks..." aria-label="Search tasks"/><kbd>/</kbd></label><div className="filter-tabs">{["All tasks", ...columns].map((item) => <button key={item} className={filter === item ? "tab-active" : ""} onClick={() => setFilter(item)}>{item}</button>)}</div><button className="button button-secondary button-compact" onClick={() => setLayout(layout === "Board" ? "List" : "Board")}><SlidersHorizontal size={15} /> {layout} view</button></div></div>
+    {layout === "Board" ? <div className="kanban-board">{columns.map((column) => { const columnTasks = visibleTasks.filter((task) => task.status === column); return <section className={`kanban-column kanban-${column.toLowerCase().replace(" ", "-")} ${dragOverColumn === column ? "kanban-column-drop" : ""}`} key={column} onDragOver={(event) => { event.preventDefault(); setDragOverColumn(column); }} onDragLeave={() => setDragOverColumn(null)} onDrop={(event) => { event.preventDefault(); const id = event.dataTransfer.getData("text/plain") || String(draggingId ?? ""); if (id) { const found = visibleTasks.find((task) => String(task.id) === id); if (found && found.status !== column) onStatus(found.id, column); } setDraggingId(null); setDragOverColumn(null); }}><div className="kanban-heading"><span className={`column-dot dot-${column.toLowerCase().replace(" ", "-")}`} /><strong>{column}</strong><span className="column-count">{columnTasks.length}</span><button className="icon-button" onClick={onCreate} aria-label={`Add task to ${column}`}><Plus size={16} /></button></div>{columnTasks.map((task) => <article className={`kanban-card ${draggingId === task.id ? "kanban-card-dragging" : ""}`} key={task.id} draggable onDragStart={(event) => { setDraggingId(task.id); event.dataTransfer.setData("text/plain", String(task.id)); event.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => { setDraggingId(null); setDragOverColumn(null); }} style={{ position: "relative" }}><div className="kanban-card-top"><span className={`priority priority-${task.priority.toLowerCase()}`}><i />{task.priority}</span><button className="icon-button" aria-label="Task options" onClick={() => setMenuId(menuId === task.id ? null : task.id)}><MoreHorizontal size={17} /></button></div>
       {menuId === task.id && <div style={{ position: "absolute", right: 12, top: 40, zIndex: 20, background: "#fff", border: "1px solid #eceef6", borderRadius: 12, boxShadow: "0 8px 24px #27304b1f", padding: 6, display: "grid", minWidth: 170 }}>
         <button className="text-button" style={{ textAlign: "left", padding: "8px 10px" }} onClick={() => { setMenuId(null); setEditing(task); }}>Edit task</button>
         <button className="text-button" style={{ textAlign: "left", padding: "8px 10px" }} onClick={() => { setMenuId(null); onStatus(task.id, columns[(columns.indexOf(column) + 1) % columns.length]); }}>Move to {columns[(columns.indexOf(column) + 1) % columns.length]}</button>
         <button className="text-button" style={{ textAlign: "left", padding: "8px 10px", color: "#d64545" }} onClick={() => { setMenuId(null); onDelete(task.id); }}>Delete task</button>
       </div>}
-      <h4>{task.title}</h4><p>{task.project}</p><div className="kanban-card-footer"><span className={task.due === "Today" ? "due-today" : ""}><CalendarDays size={13} />{task.due}</span><Avatar initials={task.initials} small /></div></article>)}{columnTasks.length === 0 && <p className="empty-column">No tasks here yet</p>}<button className="add-column-task" onClick={onCreate}><Plus size={15} /> Add task</button></section>; })}</div> : <section className="panel"><TaskTable tasks={tasks} onStatus={() => onStatus(tasks[0]?.id || 0, "In progress")} /></section>}
+      <h4>{task.title}</h4><p>{task.project}</p><div className="kanban-card-footer"><span className={task.due === "Today" ? "due-today" : ""}><CalendarDays size={13} />{task.due}</span><span className="task-card-assignee"><Avatar initials={task.initials} small /><small>{task.assignee || "Unassigned"}</small></span></div></article>)}{columnTasks.length === 0 && <p className="empty-column">No tasks here yet</p>}<button className="add-column-task" onClick={onCreate}><Plus size={15} /> Add task</button></section>; })}</div> : <section className="panel task-list-panel"><TaskTable tasks={visibleTasks} onStatus={() => { const first = visibleTasks[0]; if (first) onStatus(first.id, first.status === "Done" ? "Todo" : "Done"); }} /></section>}
     {editing && <Modal title="Edit task" subtitle="Update the task details." onClose={() => setEditing(null)}>
       <form className="modal-form" onSubmit={submitEdit}>
         <label>Task name<input name="title" defaultValue={editing.title} required minLength={3} autoFocus /></label>
